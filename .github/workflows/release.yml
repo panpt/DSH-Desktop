@@ -55,7 +55,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: release/*
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/*.dmg
+            release/*.zip
+            release/*.yml
           if-no-files-found: error
 
   publish:
