@@ -42,7 +42,7 @@ jobs:
       - name: Package unsigned CI artifact
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          DSH_DESKTOP_CHANNEL: dev
+          DSH_DESKTOP_CHANNEL: beta
         run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --${{ matrix.arch }}
       - run: pnpm smoke:packaged
       - uses: actions/upload-artifact@v4

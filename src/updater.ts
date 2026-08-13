@@ -4,10 +4,12 @@ import log from 'electron-log/main.js'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { updateChannel } from './release-channel.js'
+import type { TranslationKey } from './contracts.js'
 
 export interface DesktopUpdaterOptions {
   window: () => BrowserWindow | undefined
   beforeInstall: () => Promise<void>
+  translate: (key: TranslationKey, variables?: Readonly<Record<string, string | number>>) => string
 }
 
 export class DesktopUpdater {
@@ -43,10 +45,10 @@ export class DesktopUpdater {
       this.options.window()?.setProgressBar(-1)
       const result = await this.showMessageBox({
         type: 'info',
-        title: 'DSH-Desktop 更新已就绪',
-        message: `版本 ${info.version} 已下载完成`,
-        detail: '立即重启将安装更新。工作区配置和会话数据不会被删除。',
-        buttons: ['立即重启更新', '稍后'],
+        title: this.options.translate('updaterReadyTitle'),
+        message: this.options.translate('updaterVersionDownloaded', { version: info.version }),
+        detail: this.options.translate('updaterReadyDetail'),
+        buttons: [this.options.translate('restartNow'), this.options.translate('later')],
         defaultId: 0,
         cancelId: 1,
       })
@@ -60,7 +62,7 @@ export class DesktopUpdater {
       await this.showMessageBox({
         type: 'info',
         title: 'DSH-Desktop',
-        message: '当前已经是此更新频道的最新版本。',
+        message: this.options.translate('latestVersion'),
       })
     })
     this.updater.on('error', async error => {
@@ -69,8 +71,8 @@ export class DesktopUpdater {
       if (!this.manualCheck) return
       await this.showMessageBox({
         type: 'error',
-        title: '检查更新失败',
-        message: '暂时无法完成更新检查。',
+        title: this.options.translate('updateCheckFailedTitle'),
+        message: this.options.translate('updateCheckFailedMessage'),
         detail: error.message,
       })
     })
@@ -89,9 +91,9 @@ export class DesktopUpdater {
       if (manual) {
         await this.showMessageBox({
           type: 'info',
-          title: '自动更新尚未配置',
-          message: '当前本地构建没有更新源。',
-          detail: '通过 GitHub Actions 发布的安装包会自动写入对应的 Dev/Beta/Stable 更新源。',
+          title: this.options.translate('updateUnconfiguredTitle'),
+          message: this.options.translate('updateUnconfiguredMessage'),
+          detail: this.options.translate('updateUnconfiguredDetail'),
         })
       }
       return

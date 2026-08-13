@@ -1,7 +1,12 @@
 const path = require('node:path')
 
 const repository = process.env.GITHUB_REPOSITORY?.split('/')
-const baseChannel = process.env.DSH_DESKTOP_CHANNEL || 'dev'
+const packageVersion = require('./package.json').version
+const prerelease = packageVersion.split('-', 2)[1]?.toLowerCase() || ''
+const inferredChannel = prerelease.startsWith('dev') || prerelease.startsWith('nightly')
+  ? 'dev'
+  : prerelease.startsWith('beta') || prerelease.startsWith('rc') ? 'beta' : 'stable'
+const baseChannel = process.env.DSH_DESKTOP_CHANNEL || inferredChannel
 const platformName = process.platform === 'darwin' ? 'mac' : 'win'
 const updateChannel = `${baseChannel}-${platformName}-${process.arch}`
 const runtimeDir = `.runtime/${process.platform}-${process.arch}`
@@ -29,6 +34,8 @@ module.exports = {
   asarUnpack: [
     'node_modules/**/*',
   ],
+  electronLanguages: ['en-US', 'zh-CN'],
+  afterPack: './scripts/after-pack.cjs',
   electronUpdaterCompatibility: '>=2.16',
   directories: {
     output: 'release',
@@ -36,9 +43,21 @@ module.exports = {
   },
   files: [
     'dist/*.js',
-    'dist/*.js.map',
     'renderer/**/*',
+    'locales/**/*',
     'node_modules/**/*',
+    '!node_modules/**/*.map',
+    '!node_modules/**/*.d.ts',
+    '!node_modules/**/*.d.mts',
+    '!node_modules/**/*.d.cts',
+    '!node_modules/**/{test,tests,__tests__,example,examples}/**/*',
+    '!node_modules/node-pty/prebuilds/*/**/*',
+    `node_modules/node-pty/prebuilds/${process.platform}-${process.arch}/**/*`,
+    '!node_modules/node-pty/third_party/conpty/*/win10-arm64/**/*',
+    '!node_modules/node-pty/third_party/conpty/*/win10-x64/**/*',
+    ...(process.platform === 'win32'
+      ? [`node_modules/node-pty/third_party/conpty/*/win10-${process.arch}/**/*`]
+      : []),
     'package.json',
     'LICENSE',
     'THIRD_PARTY_NOTICES.md',

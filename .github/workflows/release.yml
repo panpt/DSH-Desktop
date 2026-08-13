@@ -9,7 +9,7 @@ on:
         description: Update channel
         type: choice
         options: [dev, beta, stable]
-        default: dev
+        default: beta
 
 permissions:
   contents: write
@@ -44,7 +44,7 @@ jobs:
       - run: pnpm runtime:fetch
       - name: Build signed release when certificates are configured
         env:
-          DSH_DESKTOP_CHANNEL: ${{ inputs.channel || 'dev' }}
+          DSH_DESKTOP_CHANNEL: ${{ inputs.channel || 'beta' }}
           CSC_LINK: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_LINK || secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_KEY_PASSWORD || secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -70,7 +70,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('manual-{0}', github.run_number) }}
-          CHANNEL: ${{ inputs.channel || 'dev' }}
+          CHANNEL: ${{ inputs.channel || 'beta' }}
         run: |
           prerelease="--prerelease"
           if [ "$CHANNEL" = "stable" ]; then prerelease=""; fi

@@ -1,30 +1,48 @@
 # DSH-Desktop
 
-`DSH-Desktop` 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Windows/macOS 桌面宿主。它保留官方 Web UI 和插件体系，并负责本机引擎生命周期、独立 Node.js 运行时、自动更新、跨平台打包与进程清理。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-> 当前为开发预览版。桌面端固定使用 `@deepseek-ai/dsh 0.1.0-rc.6`；Nightly 流水线可以检测上游 npm 新版本并构建新的 Dev 桌面包，但客户端不会在运行时直接执行不受控的 `@latest`。
+[![Desktop CI](https://github.com/panpt/DSH-Desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/panpt/DSH-Desktop/actions/workflows/ci.yml)
 
-## 架构
+DSH-Desktop is an independent Windows and macOS desktop host for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It keeps the upstream Harness Web UI and plugin system while providing a bundled runtime, local process management, native menus, desktop updates, and cross-platform packaging.
+
+> This is a development preview, not an official DeepSeek product. DSH-Desktop `0.2.0-beta.1` embeds the exact upstream package `@deepseek-ai/dsh 0.1.0-rc.6`.
+
+## Features
+
+- Windows x64, macOS Intel, and macOS Apple Silicon builds.
+- English and Simplified Chinese for the desktop shell, including startup/error pages, menus, version information, and update dialogs.
+- Automatic language selection based on the operating system, plus a saved manual choice from the Language menu or startup page.
+- A verified Node.js 24 LTS runtime inside the package; users do not need Node.js, pnpm, or Git.
+- Harness runs in a separate process on a random `127.0.0.1` port.
+- Sandboxed Electron renderer with Node integration disabled and context isolation enabled.
+- Isolated Dev, Beta, and Stable update channels per operating system and CPU architecture.
+- Windows differential downloads through NSIS blockmaps, with full-package fallback.
+- Automated upstream checks and packaged smoke tests on all three supported targets.
+
+The language setting applies only to the DSH-Desktop shell. The embedded DeepSeek Harness interface remains controlled by the upstream project and is not modified or translated by this repository.
+
+## Download
+
+Development packages are available on the [Releases page](https://github.com/panpt/DSH-Desktop/releases). Current preview packages are unsigned; Windows SmartScreen or macOS Gatekeeper may show a warning.
+
+## Architecture
 
 ```text
 Electron sandboxed renderer
         │ 127.0.0.1 random port
         ▼
-DSH web profile (separate Node.js process)
+DSH web profile (separate bundled Node.js process)
         │
         ├─ Harness plugins / sessions / tools
         └─ Windows ACL or macOS Seatbelt sandbox
 ```
 
-- Electron Renderer 禁用 Node 集成，启用 Context Isolation 和 Chromium Sandbox。
-- Harness 只监听 `127.0.0.1` 的随机端口。
-- 安装包内携带经过 SHA-256 校验的 Node.js 24 LTS，终端用户无需安装 Node、pnpm 或 Git。
-- 桌面程序关闭或更新前会停止 Harness 及其子进程。
-- 程序文件和用户数据分离；覆盖更新不会删除配置、会话或工作区记录。
+Application files and user data are separated. Updating the application does not delete Harness settings, sessions, or workspace records.
 
-## 本地开发
+## Development
 
-需要 Node.js 24 和 pnpm 11：
+Requirements: Node.js 24 and pnpm 11.
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -33,38 +51,49 @@ pnpm smoke:engine
 pnpm start
 ```
 
-生成当前平台安装包：
+Build the installer for the current platform:
 
 ```powershell
 pnpm dist
+pnpm smoke:packaged
 ```
 
-输出位于 `release/`。
+Artifacts are written to `release/`.
 
-## 更新策略
+## Localization
 
-更新频道按平台和架构隔离：
+Desktop translations live in:
 
-- `dev-win-x64`
-- `dev-mac-x64`
-- `dev-mac-arm64`
+- `locales/en-US.json`
+- `locales/zh-CN.json`
 
-Windows 使用 NSIS + blockmap 差分下载；差分不可用时自动回退到完整包。macOS 使用签名后的 ZIP/DMG 覆盖更新。macOS 自动更新必须完成 Developer ID 签名；公开发布还应完成 Apple notarization。
+The test suite requires both catalogs to expose the same keys. Missing or unsupported system locales fall back to English. The saved preference is stored in `desktop-settings.json` under the application data directory.
 
-本地构建没有 GitHub 更新源。GitHub Actions 打包时会根据 `GITHUB_REPOSITORY` 自动生成 `app-update.yml`。正式发布前需要配置 Windows/macOS 代码签名机密。
+## Updates
 
-## 数据位置
+Channels are separated by release track, platform, and architecture, for example:
 
-- Windows：`%APPDATA%\DSH-Desktop`
-- macOS：`~/Library/Application Support/DSH-Desktop`
+- `beta-win-x64`
+- `beta-mac-x64`
+- `beta-mac-arm64`
 
-日志在上述目录的 `logs/` 子目录，Harness 数据在 `harness/` 子目录。
+Local builds have no update source. GitHub Actions release builds generate the relevant update metadata. Public distribution requires Windows code signing and Apple Developer ID signing/notarization.
 
-## 上游跟随
+## Data locations
 
-`.github/workflows/upstream-nightly.yml` 每天检查 `@deepseek-ai/dsh` 的 npm 最新版本。当该版本尚无对应 Nightly Release 时，它会在 Windows x64、macOS Intel 和 macOS Apple Silicon 上分别安装这个精确版本、运行测试并打包预发布版本。稳定版应改为升级 PR + 人工批准流程。
+- Windows: `%APPDATA%\DSH-Desktop`
+- macOS: `~/Library/Application Support/DSH-Desktop`
 
-## 商标与归属
+Harness data is stored under `harness/`; logs are stored under `logs/`.
 
-本项目是独立桌面封装，不代表 DeepSeek 官方产品。DeepSeek Harness 的版权和许可证归其各自权利人所有；详见 `THIRD_PARTY_NOTICES.md`。
+## Upstream tracking
 
+The daily workflow checks the latest `@deepseek-ai/dsh` npm release. A new upstream version is installed as an exact version and must pass tests, engine startup, packaging, and packaged application startup on Windows x64, macOS Intel, and macOS Apple Silicon before artifacts are accepted.
+
+Nightly builds may follow upstream automatically. Stable releases should continue to use a reviewed dependency update and explicit approval.
+
+## License and trademarks
+
+DSH-Desktop is licensed under the MIT License. DeepSeek Harness and bundled third-party components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+This repository is independent and does not represent an official DeepSeek product.

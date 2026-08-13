@@ -19,6 +19,7 @@ body {
 }
 
 .card {
+  position: relative;
   width: min(520px, calc(100vw - 48px));
   padding: 44px;
   text-align: center;
@@ -26,6 +27,30 @@ body {
   border-radius: 22px;
   background: rgba(19, 23, 32, .88);
   box-shadow: 0 24px 90px rgba(0,0,0,.38);
+}
+
+.language-switch {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(0,0,0,.22);
+}
+
+.language-switch button {
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: #8d96aa;
+  background: transparent;
+  font-size: 11px;
+}
+
+.language-switch button.active {
+  color: #fff;
+  background: #3a4357;
 }
 
 .mark {
@@ -80,4 +105,3 @@ button {
 button.secondary { background: #2b3140; }
 button:hover { filter: brightness(1.1); }
 .versions { margin: 28px 0 0; color: #747d90; font-size: 12px; }
-
