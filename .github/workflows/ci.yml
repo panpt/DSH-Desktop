@@ -1,0 +1,57 @@
+name: Desktop CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            arch: x64
+          - name: macOS Apple Silicon
+            os: macos-15
+            arch: arm64
+          - name: macOS Intel
+            os: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+      - run: pnpm runtime:fetch
+      - run: pnpm smoke:engine
+      - name: Package unsigned CI artifact
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          DSH_DESKTOP_CHANNEL: dev
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --${{ matrix.arch }}
+      - run: pnpm smoke:packaged
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-${{ runner.os }}-${{ matrix.arch }}
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+          if-no-files-found: error
