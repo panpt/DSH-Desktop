@@ -69,7 +69,8 @@ jobs:
             release/*.blockmap
             release/*.dmg
             release/*.zip
-            release/*.yml
+            release/*-win-*.yml
+            release/*-mac-*.yml
           if-no-files-found: error
 
   publish:
