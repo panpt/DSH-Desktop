@@ -66,11 +66,12 @@ jobs:
         run: |
           dsh_packages=$(node -e "const p=require('./package.json'); console.log(Object.keys(p.dependencies).filter(name => name.startsWith('@deepseek-ai/dsh')).map(name => name + '@' + process.argv[1]).join(' '))" "${{ needs.prepare.outputs.engine_version }}")
           pnpm add --save-exact $dsh_packages
-          pnpm version "${{ needs.prepare.outputs.desktop_version }}" --no-git-tag-version
+          pnpm version "${{ needs.prepare.outputs.desktop_version }}" --no-git-tag-version --no-git-checks
       - run: pnpm verify
       - run: pnpm runtime:fetch
       - run: pnpm smoke:engine
       - name: Build Dev channel package
+        shell: bash
         env:
           DSH_DESKTOP_CHANNEL: dev
           CSC_LINK: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_LINK || secrets.MAC_CSC_LINK }}
@@ -78,12 +79,26 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --${{ matrix.arch }}
+        run: |
+          if [[ -z "${CSC_LINK:-}" ]]; then
+            unset CSC_LINK CSC_KEY_PASSWORD
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          if [[ -z "${APPLE_ID:-}" ]]; then
+            unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+          fi
+          pnpm exec electron-builder --config electron-builder.config.cjs --publish never --${{ matrix.arch }}
       - run: pnpm smoke:packaged
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: release/*
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/*.dmg
+            release/*.zip
+            release/*-win-*.yml
+            release/*-mac-*.yml
           if-no-files-found: error
 
   publish:
