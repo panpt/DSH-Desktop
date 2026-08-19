@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { engineArguments, engineEntryPath, installedEngineVersion, runtimePath } from '../src/engine.js'
 
 describe('Harness engine adapter', () => {
-  it('pins the installed Harness version', () => {
-    expect(installedEngineVersion()).toBe('0.1.0-rc.6')
+  it('installs the exact Harness version selected in the desktop manifest', () => {
+    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+    const selectedVersion = manifest.dependencies?.['@deepseek-ai/dsh']
+    expect(selectedVersion).toMatch(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
+    expect(installedEngineVersion()).toBe(selectedVersion)
   })
 
   it('builds a loopback-only web invocation', () => {
